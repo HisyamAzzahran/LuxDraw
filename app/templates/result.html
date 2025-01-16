@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Result - Trinity{% endblock %}
+
+{% block content %}
+<h2>Hand Tracking Results</h2>
+
+<h3>Detected Text:</h3>
+<p>{{ detected_text }}</p>
+
+<h3>Process:</h3>
+<p>{{ status_text }}</p>
+
+<h3>Canvas Output:</h3>
+{% if canvas_path %}
+    <img src="{{ url_for('static', filename='outputs/drawing_result.png') }}" alt="Canvas Result">
+{% else %}
+    <p>No canvas output available.</p>
+{% endif %}
+{% endblock %}
