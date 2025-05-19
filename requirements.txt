@@ -1,3 +1,6 @@
-Flask==2.3.2
-fabric==4.6.0
-easyocr==1.6.2
+Flask
+fabric
+easyocr
+opencv-python
+numpy
+mediapipe
