@@ -16,7 +16,6 @@ def hand_tracking():
         # Mengakses webcam
         cap = cv2.VideoCapture(0)
         
-        # Pastikan kamera menggunakan resolusi yang tinggi
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
@@ -114,7 +113,7 @@ def hand_tracking(save_canvas=False):
 
     # Simpan canvas jika diinginkan
     if save_canvas:
-        canvas_path = "static/outputs/drawing_result.png"
+        canvas_path = "outputs/drawing_result.png"
         cv2.imwrite(canvas_path, drawing_logic.canvas)
     else:
         canvas_path = None
@@ -123,4 +122,5 @@ def hand_tracking(save_canvas=False):
     result_data = drawing_logic.get_result()
     result_data["canvas_path"] = canvas_path
     return result_data
+
 

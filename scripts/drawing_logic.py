@@ -4,7 +4,6 @@ import time
 import easyocr
 import os
 
-
 def draw_text_with_background(frame, text, position, font, font_scale, text_color, bg_color, thickness=1, alpha=0.6):
     """Tambahkan teks dengan latar belakang transparan."""
     (text_width, text_height), baseline = cv2.getTextSize(text, font, font_scale, thickness)
@@ -14,7 +13,7 @@ def draw_text_with_background(frame, text, position, font, font_scale, text_colo
     overlay = frame.copy()
     cv2.rectangle(overlay, (x, y - text_height - baseline), (x + text_width, y + baseline), bg_color, -1)
 
-    # Gabungkan dengan transparansi
+    # transparansi
     cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
 
     # Tambahkan teks
@@ -83,7 +82,7 @@ class DrawingLogic:
         # Mode menggambar
         if self.drawing_mode:
             if self.prev_x is not None and self.prev_y is not None:
-                # Interpolasi linear untuk membuat garis smooth
+                # Interpolasi linear untuk membuat garis 
                 for i in np.linspace(0, 1, num=10):  # 10 titik interpolasi
                     x = int(self.prev_x + i * (index_x - self.prev_x))
                     y = int(self.prev_y + i * (index_y - self.prev_y))
@@ -98,7 +97,7 @@ class DrawingLogic:
         else:
             self.prev_x, self.prev_y = None, None  # Reset koordinat saat idle
 
-        # Tampilkan status dengan latar belakang transparan
+        # Tampilkan status
         status_position = (50, frame_height - 30)
         draw_text_with_background(frame, f"Status: {self.status_text}", status_position, cv2.FONT_HERSHEY_COMPLEX, 0.8,
                                   (0, 255, 0), (0, 0, 0), 2)
@@ -168,7 +167,7 @@ class DrawingLogic:
     def draw_status_icon(self, frame, position):
         """Gambar ikon status berdasarkan mode aktif."""
         x, y = position
-        icon_size = 40  # Ukuran ikon (diameter)
+        icon_size = 40  
 
         # Pilih ikon berdasarkan status
         if self.status_text == "Drawing":
@@ -299,7 +298,7 @@ class DrawingLogic:
         return resized
 
     def clear_canvas(self):
-        """Bersihkan kanvas setelah memproses."""
+        """Clear Canvas."""
         self.canvas.fill(0)
 
 def change_color(self, distance):
