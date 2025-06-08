@@ -2,6 +2,9 @@
 
 [phases.setup]
 aptPkgs = [
-  "libgl1",
-  "libglib2.0-0"
+  "libgl1-mesa-glx",
+  "libglib2.0-0",
+  "ffmpeg",
+  "libsm6",
+  "libxext6"
 ]
