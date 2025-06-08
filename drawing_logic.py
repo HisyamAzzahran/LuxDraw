@@ -2,93 +2,79 @@ import cv2
 import numpy as np
 import time
 import easyocr
+import re
 
-# Fungsi-fungsi helper bisa tetap ada
-def draw_text_with_background(frame, text, position, font, font_scale, text_color, bg_color, thickness=1, alpha=0.6):
-    (text_width, text_height), baseline = cv2.getTextSize(text, font, font_scale, thickness)
-    x, y = position
-    overlay = frame.copy()
-    cv2.rectangle(overlay, (x, y - text_height - baseline), (x + text_width, y + baseline), bg_color, -1)
-    cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
-    cv2.putText(frame, text, position, font, font_scale, text_color, thickness)
-
-def draw_progress_bar(frame, progress, position, size, color):
-    x, y = position
-    width, height = size
-    overlay = frame.copy()
-    cv2.rectangle(overlay, (x, y), (x + width, y + height), (50, 50, 50), -1)
-    progress_width = int(min(progress, 1.0) * width)
-    cv2.rectangle(overlay, (x, y), (x + progress_width, y + height), color, -1)
-    cv2.addWeighted(overlay, 0.7, frame, 0.3, 0, frame)
+# Fungsi untuk membersihkan dan mengevaluasi ekspresi matematika dengan aman
+def solve_math_expression(expression_str):
+    try:
+        # Menghapus semua karakter yang tidak diizinkan, hanya menyisakan angka, operator, dan tanda kurung
+        safe_expr = re.sub(r'[^0-9+\-*/(). ]', '', expression_str)
+        # Mengganti 'x' dengan '*' untuk perkalian
+        safe_expr = safe_expr.replace('x', '*')
+        
+        # Mengevaluasi ekspresi dengan aman, tanpa akses ke fungsi built-in berbahaya
+        result = eval(safe_expr, {"__builtins__": {}}, {})
+        return result
+    except (SyntaxError, NameError, TypeError, ZeroDivisionError, ValueError) as e:
+        print(f"Error evaluating expression '{expression_str}': {e}")
+        return None
 
 class DrawingLogic:
     def __init__(self):
+        """
+        Menginisialisasi semua variabel dan model yang diperlukan.
+        Pemuatan model EasyOCR hanya dilakukan sekali untuk efisiensi.
+        """
         self.canvas = None
         self.prev_x, self.prev_y = None, None
-        self.color = (255, 255, 255)
-        self.thickness = 10  # Dibuat lebih tebal agar terlihat jelas
+        self.color = (255, 255, 255)  # Warna default: Putih
+        self.thickness = 10  # Ketebalan garis
         self.drawing_mode = False
         self.erasing_mode = False
         self.status_text = "Idle"
         self.idle_start_time = None
         self.has_processed = False
         self.detected_text = ""
+        self.result_text = ""
         
-        # --- PERBAIKAN: Menghapus referensi ke file lokal ---
-        self.icons = {}  # Kosongkan dictionary ikon
-        self.background = None # Set background menjadi None
-        
-        # Inisialisasi pembaca OCR sekali saja untuk efisiensi
+        # Inisialisasi pembaca OCR sekali saja untuk performa
+        # GPU dinonaktifkan karena tidak tersedia di lingkungan server umum
         self.reader = easyocr.Reader(['en'], gpu=False)
 
-        self.colors = [(255, 255, 255), (0, 0, 255), (0, 255, 0), (255, 0, 0)]
+        self.colors = [(255, 255, 255), (0, 0, 255), (0, 255, 0), (255, 0, 0)] # Putih, Merah, Hijau, Biru
         self.color_names = ["White", "Red", "Green", "Blue"]
         self.selected_color_index = 0
 
     def initialize_canvas(self, frame_shape):
+        """Membuat canvas kosong sesuai dengan ukuran frame video."""
         self.canvas = np.zeros(frame_shape, dtype=np.uint8)
 
     def draw(self, frame, index_finger):
+        """Menggambar di kanvas berdasarkan mode (menggambar atau menghapus)."""
         index_x, index_y = index_finger
-        frame_height, frame_width, _ = frame.shape
-
-        self.draw_color_palette(frame)
-
-        # Bagian ini sudah otomatis tidak akan berjalan karena self.background = None
-        if self.background is not None:
-            background = cv2.resize(self.background, (frame_width, frame_height))
-            frame = cv2.addWeighted(frame, 0.7, background, 0.3, 0)
-
+        
         if self.drawing_mode:
-            if self.prev_x is not None and self.prev_y is not None:
+            if self.prev_x is not None:
                 cv2.line(self.canvas, (self.prev_x, self.prev_y), (index_x, index_y), self.color, self.thickness)
             self.prev_x, self.prev_y = index_x, index_y
         elif self.erasing_mode:
-            radius = 30
-            cv2.circle(self.canvas, (index_x, index_y), radius, (0, 0, 0), -1)
+            cv2.circle(self.canvas, (index_x, index_y), 30, (0, 0, 0), -1)
         else:
             self.prev_x, self.prev_y = None, None
 
-        status_position = (50, frame_height - 30)
-        draw_text_with_background(frame, f"Mode: {self.status_text}", status_position, cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), (0, 0, 0, 128))
-
-        if self.status_text == "Idle" and self.idle_start_time:
-            elapsed_time = time.time() - self.idle_start_time
-            progress = min(1.0, elapsed_time / 7.0)
-            if progress > 0.1: # Hanya tampilkan jika sudah mulai
-                timer_position = (frame_width - 200, frame_height - 30)
-                draw_progress_bar(frame, progress, timer_position, (150, 20), (0, 255, 255))
-    
     def draw_color_palette(self, frame):
+        """Menggambar UI palet warna di bagian atas frame."""
         palette_height = 50
         for i, color in enumerate(self.colors):
             x1, y1 = i * 100, 0
             x2, y2 = (i + 1) * 100, palette_height
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, -1)
             if i == self.selected_color_index:
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 255), 4)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 255), 4) # Highlight
 
     def check_color_selection(self, landmarks):
+        """Memeriksa apakah jari menyentuh salah satu palet warna."""
+        if not self.canvas: return
         index_finger_tip = landmarks[8]
         x = int(index_finger_tip.x * self.canvas.shape[1])
         y = int(index_finger_tip.y * self.canvas.shape[0])
@@ -100,80 +86,92 @@ class DrawingLogic:
                 self.color = self.colors[self.selected_color_index]
 
     def toggle_modes(self, landmarks):
+        """Mengubah status (Idle, Drawing, Erasing) berdasarkan gestur tangan."""
         if not landmarks:
-            self.drawing_mode = False
-            self.erasing_mode = False
-            if self.status_text != "Processing" and not self.status_text.startswith("Result"):
-                if not self.idle_start_time:
-                    self.idle_start_time = time.time()
+            if not self.status_text.startswith("Result"):
+                self.drawing_mode, self.erasing_mode = False, False
+                if not self.idle_start_time: self.idle_start_time = time.time()
                 self.status_text = "Idle"
             return
             
-        index_finger_tip = landmarks[8].y
-        index_finger_base = landmarks[6].y
-        fist = all(landmarks[i].y > landmarks[i - 2].y for i in [8, 12, 16, 20])
-        pointing = (index_finger_tip < index_finger_base) and all(landmarks[i].y > landmarks[i - 2].y for i in [12, 16, 20])
-
-        if fist and not self.erasing_mode:
-            self.drawing_mode, self.erasing_mode = False, True
-            self.status_text = "Erasing"
-            self.idle_start_time = None
-            self.has_processed = False
-        elif pointing and not self.drawing_mode:
-            self.drawing_mode, self.erasing_mode = True, False
-            self.status_text = "Drawing"
-            self.idle_start_time = None
-            self.has_processed = False
-        elif not fist and not pointing:
+        tip_y = {i: landmarks[i].y for i in [4, 8, 12, 16, 20]}
+        pip_y = {i: landmarks[i-2].y for i in [8, 12, 16, 20]}
+        
+        is_fist = all(tip_y[i] > pip_y[i] for i in [8, 12, 16, 20])
+        is_pointing = (tip_y[8] < pip_y[8]) and all(tip_y[i] > pip_y[i] for i in [12, 16, 20])
+        
+        if is_fist:
+            self.drawing_mode, self.erasing_mode, self.status_text = False, True, "Erasing"
+            self.idle_start_time, self.has_processed = None, False
+        elif is_pointing:
+            self.drawing_mode, self.erasing_mode, self.status_text = True, False, "Drawing"
+            self.idle_start_time, self.has_processed = None, False
+        else:
             self.drawing_mode, self.erasing_mode = False, False
-            if self.status_text not in ["Processing", "Result: "]:
+            if not self.status_text.startswith("Result") and self.status_text != "Processing":
                 if not self.idle_start_time:
                     self.idle_start_time = time.time()
                     self.check_color_selection(landmarks)
                 self.status_text = "Idle"
 
-    def process_canvas(self):
+    def process_canvas_for_ocr(self):
+        """Memproses gambar di kanvas menggunakan OCR jika sudah idle cukup lama."""
         if self.status_text == "Idle" and self.idle_start_time and not self.has_processed:
             if time.time() - self.idle_start_time >= 7:
-                print("Idle for 7 seconds. Processing canvas...")
                 self.status_text = "Processing..."
                 self.has_processed = True
-
-                gray_canvas = cv2.cvtColor(self.canvas, cv2.COLOR_BGR2GRAY)
-                if cv2.countNonZero(gray_canvas) == 0:
-                    print("Canvas is empty, skipping OCR.")
-                    self.status_text = "Idle"
-                    self.has_processed = False
+                
+                # Cek jika kanvas kosong
+                if np.count_nonzero(self.canvas) == 0:
+                    print("Kanvas kosong, tidak ada yang diproses.")
+                    self.status_text = "Idle" # Kembali ke idle
                     self.idle_start_time = None
+                    self.has_processed = False
                     return
+
+                # Pre-processing untuk OCR
+                gray_canvas = cv2.cvtColor(self.canvas, cv2.COLOR_BGR2GRAY)
+                inverted = cv2.bitwise_not(gray_canvas)
+                _, thresh = cv2.threshold(inverted, 50, 255, cv2.THRESH_BINARY)
                 
-                processed_canvas = self.preprocess_for_ocr(self.canvas)
-                results = self.reader.readtext(processed_canvas, detail=0)
-                
+                # Baca teks
+                results = self.reader.readtext(thresh, detail=0)
                 self.detected_text = " ".join(results)
-                print(f"Detected text: {self.detected_text}")
+                print(f"Teks terdeteksi: {self.detected_text}")
                 
-                try:
-                    # Ganti 'x' atau simbol perkalian lain dengan '*'
-                    math_expr = self.detected_text.lower().replace('x', '*')
-                    result_val = eval(math_expr)
-                    print(f"Expression: {math_expr} = {result_val}")
-                    self.status_text = f"Result: {result_val}"
-                except Exception as e:
-                    print(f"Failed to evaluate expression: {self.detected_text}, Error: {e}")
+                # Hitung hasil
+                calculation_result = solve_math_expression(self.detected_text)
+                if calculation_result is not None:
+                    self.result_text = f"{calculation_result}"
+                    self.status_text = "Result"
+                else:
+                    self.result_text = "Error"
                     self.status_text = "Invalid Expression"
 
-                # Jangan reset timer & clear canvas di sini, biarkan frontend yang mengontrol
-                # self.clear_canvas()
+    def get_response_data(self, frame):
+        """Menyiapkan data yang akan dikirim sebagai JSON ke frontend."""
+        # Gabungkan frame kamera dengan kanvas gambar untuk tampilan
+        combined_frame = cv2.addWeighted(frame, 0.4, self.canvas, 1, 0)
 
-    def get_result(self):
+        # Gambar UI di atasnya
+        self.draw_color_palette(combined_frame)
+        status_position = (10, combined_frame.shape[0] - 10)
+        draw_text_with_background(combined_frame, f"Mode: {self.status_text}", status_position, cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), (0,0,0,128))
+
+        if self.status_text == "Idle" and self.idle_start_time:
+            elapsed_time = time.time() - self.idle_start_time
+            progress = min(1.0, elapsed_time / 7.0)
+            if progress > 0.01:
+                timer_position = (combined_frame.shape[1] - 160, combined_frame.shape[0] - 30)
+                draw_progress_bar(combined_frame, progress, timer_position, (150, 20), (0, 255, 255))
+        
+        # Encode gambar ke base64
+        _, buffer = cv2.imencode('.jpg', combined_frame)
+        jpg_as_text = base64.b64encode(buffer).decode('utf-8')
+
         return {
-            "detected_text": self.detected_text,
-            "status": self.status_text
+            'image': f'data:image/jpeg;base64,{jpg_as_text}',
+            'status': self.status_text,
+            'detected_text': self.detected_text,
+            'result': self.result_text,
         }
-
-    def preprocess_for_ocr(self, canvas):
-        gray = cv2.cvtColor(canvas, cv2.COLOR_BGR2GRAY)
-        inverted = cv2.bitwise_not(gray) # Invert warna, karena OCR sering lebih baik dengan teks hitam di background putih
-        _, thresh = cv2.threshold(inverted, 127, 255, cv2.THRESH_BINARY)
-        return thresh
