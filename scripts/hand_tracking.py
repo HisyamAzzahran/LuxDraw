@@ -1,7 +1,7 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-from scripts.drawing_logic import DrawingLogic
+from drawing_logic import DrawingLogic
 
 def classify_gesture(hand_landmarks):
     # Logika sederhana untuk menganalisis gestur
@@ -59,7 +59,7 @@ def hand_tracking():
 def hand_tracking(save_canvas=False):
     import mediapipe as mp
     import cv2
-    from scripts.drawing_logic import DrawingLogic
+    from drawing_logic import DrawingLogic
 
     mp_hands = mp.solutions.hands
     mp_drawing = mp.solutions.drawing_utils

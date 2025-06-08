@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for
-from scripts.drawing_logic import DrawingLogic
+from drawing_logic import DrawingLogic
 from scripts.hand_tracking import hand_tracking
 from models.user_model import User
 from app import db
