@@ -23,6 +23,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Salin semua sisa kode proyek Anda ke dalam container
 COPY . .
 
-# Perintahkan Railway untuk menjalankan aplikasi menggunakan Gunicorn
-# Penulisan ini (tanpa kurung siku) memastikan variabel $PORT bisa dibaca
-CMD gunicorn --bind 0.0.0.0:$PORT app:app
+# Jalankan aplikasi menggunakan Gunicorn dengan pola Application Factory
+CMD gunicorn --bind 0.0.0.0:$PORT "app:create_app()"
