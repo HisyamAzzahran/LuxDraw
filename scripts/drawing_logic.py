@@ -82,7 +82,7 @@ class DrawingLogic:
         # Mode menggambar
         if self.drawing_mode:
             if self.prev_x is not None and self.prev_y is not None:
-                # Interpolasi linear untuk membuat garis 
+                # Interpolasi linear untuk membuat garis
                 for i in np.linspace(0, 1, num=10):  # 10 titik interpolasi
                     x = int(self.prev_x + i * (index_x - self.prev_x))
                     y = int(self.prev_y + i * (index_y - self.prev_y))
@@ -100,7 +100,7 @@ class DrawingLogic:
         # Tampilkan status
         status_position = (50, frame_height - 30)
         draw_text_with_background(frame, f"Status: {self.status_text}", status_position, cv2.FONT_HERSHEY_COMPLEX, 0.8,
-                                  (0, 255, 0), (0, 0, 0), 2)
+                                    (0, 255, 0), (0, 0, 0), 2)
 
         # Hitungan detik Idle di kanan bawah
         if self.status_text == "Idle" and self.idle_start_time:
@@ -120,12 +120,12 @@ class DrawingLogic:
             # Gambar bar progres di kanan bawah
             timer_position = (frame_width - 200, frame_height - 30)
             draw_progress_bar(frame, progress, timer_position, (150, 20), (0, 255, 255))
-       # Menentukan ikon berdasarkan status
+        # Menentukan ikon berdasarkan status
         icon = self.icons.get(self.status_text, None)
         if icon is not None:
             # Tampilkan ikon di pojok kanan atas
-            self.overlay_icon(frame, icon, (frame_width - 100, 10))          
-    
+            self.overlay_icon(frame, icon, (frame_width - 100, 10))
+
     def overlay_icon(self, frame, icon_path, position):
         """Overlay ikon pada frame."""
         x, y = position
@@ -163,11 +163,11 @@ class DrawingLogic:
 
         # Tempelkan hasil ke frame
         frame[y:y+icon_size, x:x+icon_size] = roi
-    
+
     def draw_status_icon(self, frame, position):
         """Gambar ikon status berdasarkan mode aktif."""
         x, y = position
-        icon_size = 40  
+        icon_size = 40
 
         # Pilih ikon berdasarkan status
         if self.status_text == "Drawing":
@@ -195,6 +195,7 @@ class DrawingLogic:
                 # Highlight warna aktif
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 255), 3)
             cv2.putText(frame, self.color_names[i], (x1 + 10, y2 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+
     def check_color_selection(self, landmarks):
         """Periksa apakah jari telunjuk berada di atas palet warna."""
         index_finger_tip = landmarks[8]  # Landmark jari telunjuk
@@ -301,20 +302,21 @@ class DrawingLogic:
         """Clear Canvas."""
         self.canvas.fill(0)
 
-def change_color(self, distance):
-    """Mengubah warna berdasarkan jarak antara dua titik."""
-    if distance < 30:
-        self.color = (0, 0, 255)  # Merah
-    elif distance < 50:
-        self.color = (0, 255, 0)  # Hijau
-    else:
-        self.color = (255, 255, 255)  # Putih
+    def change_color(self, distance):
+        """Mengubah warna berdasarkan jarak antara dua titik."""
+        if distance < 30:
+            self.color = (0, 0, 255)  # Merah
+        elif distance < 50:
+            self.color = (0, 255, 0)  # Hijau
+        else:
+            self.color = (255, 255, 255)  # Putih
 
+    def adjust_thickness(self, distance):
+        """Menyesuaikan ketebalan garis berdasarkan jarak antara dua titik."""
+        # Ketebalan minimum 1 dan maksimum 15
+        self.thickness = max(1, min(15, int(distance / 10)))
 
-def adjust_thickness(self, distance):
-    """Menyesuaikan ketebalan garis berdasarkan jarak antara dua titik."""
-    # Ketebalan minimum 1 dan maksimum 15
-    self.thickness = max(1, min(15, int(distance / 10)))
-    
-def save_drawing(image, filename="drawing.png"):
-    cv2.imwrite(f"outputs/{filename}", image)
+    def save_drawing(self, image, filename="drawing.png"):
+        if not os.path.exists("outputs"):
+            os.makedirs("outputs")
+        cv2.imwrite(f"outputs/{filename}", image)
