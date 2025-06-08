@@ -1,6 +1,6 @@
 Flask
-fabric
-easyocr
-opencv-python
-numpy
+opencv-python-headless
 mediapipe
+numpy
+easyocr
+gunicorn
