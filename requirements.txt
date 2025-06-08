@@ -5,3 +5,4 @@ numpy
 easyocr
 gunicorn
 Flask-SQLAlchemy
+Flask-Cors
