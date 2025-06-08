@@ -5,7 +5,6 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Update daftar paket dan install dependency sistem yang dibutuhkan OpenCV
-# Ini adalah bagian yang akan memperbaiki error libGL.so.1
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
@@ -25,5 +24,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Perintahkan Railway untuk menjalankan aplikasi menggunakan Gunicorn
-# Gunicorn akan berjalan di port yang disediakan oleh Railway
-CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "app:app"]
+# Penulisan ini (tanpa kurung siku) memastikan variabel $PORT bisa dibaca
+CMD gunicorn --bind 0.0.0.0:$PORT app:app
