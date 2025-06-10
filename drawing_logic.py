@@ -3,6 +3,8 @@ import numpy as np
 import time
 import easyocr
 import re
+import base64
+
 
 def solve_math_expression(expression_str):
     """Fungsi untuk membersihkan dan mengevaluasi ekspresi matematika dengan aman."""
