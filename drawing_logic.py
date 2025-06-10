@@ -153,8 +153,10 @@ class DrawingLogic:
 
     def get_response_data(self, frame):
         # Gabungkan frame kamera dengan kanvas gambar untuk tampilan
+        if self.canvas is None:
+            self.initialize_canvas(frame.shape)
         combined_frame = cv2.addWeighted(frame, 0.4, self.canvas, 1, 0)
-        
+
         # Gambar UI di atasnya
         self.draw_ui_elements(combined_frame)
 

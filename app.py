@@ -37,8 +37,10 @@ def create_app():
         except Exception as e:
             return jsonify({'error': f'Error decoding image: {str(e)}'}), 400
 
-        if frame is None:
-            return jsonify({'error': 'Failed to decode image, frame is None'}), 400
+        if frame is None or frame.size == 0:
+            print("Decoding failed: frame is None or empty")
+            return jsonify({'error': 'Invalid image/frame'}), 400
+
 
         if not is_canvas_initialized or (hasattr(drawing_logic.canvas, 'shape') and drawing_logic.canvas.shape[:2] != frame.shape[:2]):
             drawing_logic.initialize_canvas(frame.shape)
@@ -67,6 +69,7 @@ def create_app():
         
         response_data = drawing_logic.get_response_data(frame)
         return jsonify(response_data)
+        
 
     @app.route('/clear', methods=['POST'])
     def clear_drawing():
